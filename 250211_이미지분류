@@ -59,7 +59,7 @@ for file in tiff_files:
     plt.imshow(binary_image, cmap="gray")
     plt.title(f"{os.path.basename(file)} - Filtered Dots: {dot_count}")
     plt.axis("off")
-    plt.show()
+    #plt.show()
     binary_pil = Image.fromarray((binary_image * 255).astype(np.uint8))
     binary_filename = os.path.join(output_folder, f"binary_{os.path.basename(file).replace('.tif', '.png')}")
     binary_pil.save(binary_filename)
