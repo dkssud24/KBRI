@@ -24,6 +24,47 @@ for file_path in tiff_files:
 
     os.makedirs(group_folder, exist_ok=True)  
 
-    new_path = os.path.join(group_folder, file_name) 
-    shutil.move(file_path, new_path) 
+
+
+#Second Step
+import os
+import numpy as np
+import matplotlib.pyplot as plt
+from glob import glob
+from PIL import Image
+from scipy import ndimage
+
+folder_path = "/Users/jeonghaeun/Downloads/SN_TIFF/Control"
+
+tiff_files = glob(os.path.join(folder_path, "*.tif"))
+
+def count_specific_dots(image_path):
+    img = Image.open(image_path).convert("L")
+    img_array = np.array(img)
+    binary = img_array < 100  
+    labeled, num_features = ndimage.label(binary)
+    sizes = np.array(ndimage.sum(binary, labeled, range(num_features + 1)))
+    size_filter = (sizes > 10) & (sizes < 500) 
+    final_count = np.sum(size_filter)
+    return final_count, binary
+
+results = []
+
+for file in tiff_files:
+    dot_count, binary_image = count_specific_dots(file)
+    results.append([os.path.basename(file), dot_count])
+    plt.figure(figsize=(6, 6))
+    plt.imshow(binary_image, cmap="gray")
+    plt.title(f"{os.path.basename(file)} - Filtered Dots: {dot_count}")
+    plt.axis("off")
+    plt.show()
+
+import pandas as pd
+csv_path = os.path.join(folder_path, "dot_count_results.csv")
+df = pd.DataFrame(results, columns=["File Name", "Filtered Dot Count"])
+df.to_csv(csv_path, index=False)
+
+
+
+
 
