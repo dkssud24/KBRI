@@ -35,6 +35,8 @@ from PIL import Image
 from scipy import ndimage
 
 folder_path = "/Users/jeonghaeun/Downloads/SN_TIFF/Control"
+output_folder = os.path.join(folder_path, "binary_results")
+os.makedirs(output_folder, exist_ok=True) 
 
 tiff_files = glob(os.path.join(folder_path, "*.tif"))
 
@@ -58,6 +60,9 @@ for file in tiff_files:
     plt.title(f"{os.path.basename(file)} - Filtered Dots: {dot_count}")
     plt.axis("off")
     plt.show()
+    binary_pil = Image.fromarray((binary_image * 255).astype(np.uint8))
+    binary_filename = os.path.join(output_folder, f"binary_{os.path.basename(file).replace('.tif', '.png')}")
+    binary_pil.save(binary_filename)
 
 import pandas as pd
 csv_path = os.path.join(folder_path, "dot_count_results.csv")
