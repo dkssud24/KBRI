@@ -1,0 +1,29 @@
+#First step
+import os
+import shutil
+from glob import glob
+
+folder_path = "/Users/jeonghaeun/Downloads/SN_TIFF"  
+
+tiff_files = glob(os.path.join(folder_path, "*.tif")) + glob(os.path.join(folder_path, "*.tiff"))
+
+def get_group(file_name):
+    if file_name.startswith("1uM"):
+        return "1uM"
+    elif file_name.startswith("Control"):
+        return "Control"
+    elif file_name.startswith("MPTP"):
+        return "MPTP"
+    else:
+        return "Others"
+
+for file_path in tiff_files:
+    file_name = os.path.basename(file_path) 
+    group_name = get_group(file_name)  
+    group_folder = os.path.join(folder_path, group_name)  
+
+    os.makedirs(group_folder, exist_ok=True)  
+
+    new_path = os.path.join(group_folder, file_name) 
+    shutil.move(file_path, new_path) 
+
