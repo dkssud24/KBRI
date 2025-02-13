@@ -1,6 +1,8 @@
 library(data.table)
 library(dplyr)
 
+
+setwd(""C:/Users/KBRI/Downloads/A1BG_P04217_OID30771_v1_Inflammation_II/A1BG_P04217_OID30771_v1_Inflammation_II"")
 significant_snps <- data.table()
 
 
@@ -27,8 +29,12 @@ significant_snps$original <- sub("(:[^:]+){2}$", "", significant_snps$ID)
 
 
 significant_snps <- significant_snps %>%
-  mutate(ID_clean = sub("(:[^:]+){2}$", "", ID))
+  mutate(original = sub("(:[^:]+){2}$", "", ID))
 
+m <- left_join(significant_snps,root_bim,by="original")
+m2 <- m [,c(1,23,26,4,5,6,7,8,10,11,12,13,15)]
+names(m2) <- c("CHR","SNP","BP","A1","A2","A2FREQ","INFO","N","BETA","SE","CHISQ","LOG10P","P")
+m3 <- na.omit(m2)
 
 
 
