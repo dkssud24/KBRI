@@ -37,6 +37,10 @@ m <- left_join(significant_snps, root_bim, by = "original")
 m2 <- m[, c(1, 23, 26, 4, 5, 6, 7, 8, 10, 11, 12, 13, 15)]
 colnames(m2) <- c("CHR", "SNP", "BP", "A1", "A2", "A2FREQ", "INFO", "N", "BETA", "SE", "CHISQ", "LOG10P", "P")
 m3 <- na.omit(m2)
+fwrite(m3,'C:/Users/KBRI/Downloads/tmp/A1BG_sig.txt',quote=FALSE,row.names=FALSE,sep="\t")
+
+#Plink
+C:\Users\KBRI\Desktop\정해운\0015_plink\plink_win64_20241022\plink --bfile C:\Users\KBRI\Desktop\정해운\0014_UKB_data\ref --clump C:\Users\KBRI\Downloads\tmp\A1BG_sig.txt --clump-kb 1000 --clump-r2 0.01 --clump-p1 1 --clump-p2 1 --out :\Users\KBRI\Downloads\tmp\result_A1BG_sig.txt
 
 # 📌 7. PLINK Clumping 결과 파일 로드 및 매칭
 m4 <- fread("C:/Users/KBRI/Downloads/tmp/result_A1BG_sig.txt.clumped")
