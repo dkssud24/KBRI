@@ -1,0 +1,43 @@
+import matplotlib.pyplot as plt
+from PIL import Image
+import numpy as np
+from scipy.ndimage import label, binary_opening, binary_closing, binary_dilation, distance_transform_edt
+from skimage.segmentation import watershed
+from skimage.feature import peak_local_max
+
+def visualize_detected_dots(image_path):
+    image = Image.open(image_path).convert("L")  
+    image_array = np.array(image)
+    
+    gamma = 0.8
+    image_array = 255 * (image_array / 255) ** gamma
+    image_array = np.clip(image_array, 0, 255).astype(np.uint8)
+    image_array = (image_array - np.min(image_array)) / (np.max(image_array) - np.min(image_array)) * 255
+    image_array = image_array.astype(np.uint8)
+
+    threshold = np.mean(image_array) + 0.1 * np.std(image_array)
+    blue_mask = image_array > threshold  
+
+    cleaned_mask = binary_opening(blue_mask, structure=np.ones((2,2)))  
+    cleaned_mask = binary_closing(cleaned_mask, structure=np.ones((2,2)))  
+    cleaned_mask = binary_dilation(cleaned_mask, structure=np.ones((2,2)))  
+
+    distance_map = distance_transform_edt(cleaned_mask)
+    local_maxi = peak_local_max(distance_map, indices=False, footprint=np.ones((15, 15)), labels=cleaned_mask)
+    markers, _ = label(local_maxi)
+    watershed_labels = watershed(-distance_map, markers, mask=cleaned_mask)
+
+    num_features = len(np.unique(watershed_labels)) - 1  
+
+    fig, ax = plt.subplots(figsize=(8, 8))
+    ax.imshow(image_array, cmap="gray")
+    ax.contour(watershed_labels, colors="red", linewidths=0.5)  
+    ax.set_title(f"Detected Dots: {num_features}")
+    plt.show()
+
+image1_path = "/Users/jeonghaeun/Downloads/Kim_250219/TOT8001.tif"
+image2_path = "/Users/jeonghaeun/Downloads/Kim_250219/TOT1001.tif"
+
+visualize_detected_dots(image1_path)
+visualize_detected_dots(image2_path)
+
