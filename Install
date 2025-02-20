@@ -1,0 +1,11 @@
+#Synapse_data
+synapse get -r syn51365303 
+#UserID_Haeunjung
+#Password_1q***
+
+#tar_unzip
+tar -xvf *
+
+#gz_unzi
+gzip -d */*
+
