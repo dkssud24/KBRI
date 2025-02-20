@@ -13,3 +13,10 @@ gzip -d */*
 install.packages("devtools")
 devtools::install_github("MinhaoYaooo/MR-SPI")
 devtools::install_github("MRCIEU/TwoSampleMR")
+
+library(data.table)
+library(dplyr)
+library(TwoSampleMR)
+library(MR.SPI)
+
+
