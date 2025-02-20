@@ -9,3 +9,7 @@ tar -xvf *
 #gz_unzi
 gzip -d */*
 
+#IN_R
+install.packages("devtools")
+devtools::install_github("MinhaoYaooo/MR-SPI")
+devtools::install_github("MRCIEU/TwoSampleMR")
