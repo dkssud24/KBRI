@@ -11,6 +11,9 @@ setwd("C:/Users/KBRI/Downloads/A1BG_P04217_OID30771_v1_Inflammation_II/A1BG_P042
 # 📌 3. 유의한 SNP 필터링 (크로모좀별 데이터 처리)
 significant_snps <- data.table()
 for (i in 1:22) { 
+  #var1 <- paste0("discovery_chr",i,"_A1BG:P04217:OID30771:v1:Inflammation_II",sep="")
+  #var4 <- fread(var1)
+  
   var1 <- paste0("discovery_chr", i, "_A1BG_P04217_OID30771_v1_Inflammation_II")
   var2 <- paste0("discovery_RS2_chunk1473_chr", i, "_A1BG_P04217_OID30771_v1_Inflammation_II.regenie")
   var3 <- file.path(var1, var2)
