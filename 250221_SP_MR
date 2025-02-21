@@ -30,6 +30,7 @@ for (tar_file in pqtl_files) {
     close(archive_read)
     return(data)
   })
+}
   
   combined_data <- rbindlist(chromosome_data, fill = TRUE)
   combined_data <- combined_data[combined_data$A1FREQ > 0.01, ]
