@@ -19,26 +19,18 @@ chromosome_files <- archive_contents$path[grepl("chr[0-9]+|chr1[0-9]|chr2[0-2]",
 print(chromosome_files)
 
 # 📌 4. Chromosome 데이터 읽기 (에러 없는 버전)
+# .tar 내부에서 파일 읽기
+# gzcon으로 압축 해제 없이 메모리에서 읽기
+# 텍스트 데이터로 읽어오기
+# fread가 문자열을 직접 읽을 수 있도록 변환
+# 연결 닫기
 chromosome_data <- lapply(chromosome_files, function(file_path) {
-  
-  # .tar 내부에서 파일 읽기
   archive_read <- archive::archive_read(tar_file, file = file_path)
-  
-  # gzcon으로 압축 해제 없이 메모리에서 읽기
   con <- gzcon(archive_read)
-  
-  # 텍스트 데이터로 읽어오기
   raw_text <- readLines(con, warn = FALSE)
-  
-  # fread가 문자열을 직접 읽을 수 있도록 변환
   text_input <- paste(raw_text, collapse = "\n")
-  
-  # fread로 데이터프레임 생성
   data <- fread(text_input, na.strings = c("", "NA"))
-  
-  # 연결 닫기
   close(archive_read)
-  
   return(data)
 })
 
