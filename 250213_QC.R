@@ -111,3 +111,5 @@ mr_spi_result <- MR.SPI(
 # 📌 16. 결과 출력
 print(mr_spi_result)
 
+
+
