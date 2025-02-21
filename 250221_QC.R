@@ -8,6 +8,7 @@ library(data.table)
 library(dplyr)
 
 # 📌 2. .tar 파일 내부 파일 목록 확인
+#Specific_APOE
 tar_file <- "APOE_P02649_OID30727_v1_Inflammation_II.tar"
 archive_contents <- archive::archive(tar_file)
 
