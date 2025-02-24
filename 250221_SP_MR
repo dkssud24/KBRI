@@ -211,3 +211,54 @@ for (pqtl_sig_file in pqtl_sig_files) {
   cat("Processed:", file_base, "->", output_file, "\n")
 }
 
+
+#step4_extract_clumping_SNP
+library(data.table)
+library(dplyr)
+
+# Define directories
+mr_ready_dir <- "/BiO/hae/000005_MRSPI/22_pqtl_sig_clump_QC/"
+clump_dir <- "/BiO/hae/000005_MRSPI/11_pqtl_sig_clump/"
+output_dir <- "/BiO/hae/000005_MRSPI/33_pqtl_sig_clump_QC_list/"
+
+# Create output directory if it doesn't exist
+if (!dir.exists(output_dir)) dir.create(output_dir)
+
+# List all MR ready and clump files
+mr_ready_files <- list.files(mr_ready_dir, pattern = "_MR_ready.tsv$", full.names = TRUE)
+clump_files <- list.files(clump_dir, pattern = "_sig_sig.txt_clumped.tsv$", full.names = TRUE)
+
+# Process each file
+for (mr_file in mr_ready_files) {
+  file_base <- tools::file_path_sans_ext(basename(mr_file))
+  clump_file <- clump_files[grepl(gsub("_MR_ready", "", file_base), clump_files)]
+  
+  if (length(clump_file) == 0) {
+    cat("No clumped file found for:", file_base, "\n")
+    next
+  }
+  
+  # Load data
+  mr_data <- fread(mr_file)
+  clumping <- fread(clump_file)
+  
+  # Extract SNPs from clumped file
+  clumping_snp <- data.frame(SNP = clumping$SNP)
+  
+  # Perform left join to match clumped SNPs with MR ready data
+  matched_data <- left_join(clumping_snp, mr_data, by = "SNP")
+  
+  # Check if matching SNPs exist
+  if (nrow(matched_data) == 0) {
+    cat("No matching SNPs found in:", file_base, "\n")
+    next
+  }
+  
+  # Save the result
+  output_file <- paste0(output_dir, "v3_result_", gsub("_MR_ready", "", basename(mr_file)), ".tsv")
+  fwrite(matched_data, output_file, sep = "\t", quote = FALSE, row.names = FALSE)
+  
+  cat("Processed:", file_base, "->", output_file, "\n")
+}
+
+
