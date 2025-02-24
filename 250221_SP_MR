@@ -105,3 +105,40 @@ for (pqtl_file in pqtl_files) {
   }
 }
 
+
+#step3
+#pQTL_clumping_QC_for_input_MR
+# Load necessary libraries
+library(data.table)
+library(dplyr)
+
+# Load pQTL clumped data
+pqtl <- fread("/BiO//hae/000005_MRSPI/11_pqtl_sig_clump/ZP3_P21754_OID30265_v1_Cardiometabolic_II_sig_sig.txt")
+pqtl <- data.frame(pqtl)
+
+# Load clumped SNPs
+pqtl_clump <- fread("/BiO/hae/000005_MRSPI/11_pqtl_sig_clump/result_ZP3_P21754_OID30265_v1_Cardiometabolic_II_sig_sig.txt_clumped.tsv")
+pqtl_clump_snp <- data.frame(SNP = pqtl_clump$SNP)
+
+# Merge clumped SNPs with pQTL data
+m <- left_join(pqtl_clump_snp, pqtl, by = 'SNP')
+
+# Load original pQTL data
+pqtl_ori <- fread('/BiO/hae/000005_MRSPI/00_pqtl_sig/ZP3_P21754_OID30265_v1_Cardiometabolic_II_sig.tsv')
+
+# Create SNP_ID for matching
+pqtl_ori$SNP_ID <- paste0(pqtl_ori$CHROM, ":", pqtl_ori$GENPOS, ":", pqtl_ori$ALLELE0, ":", pqtl_ori$ALLELE1)
+m$SNP_ID <- paste0(m$CHR, ":", m$BP, ":", m$A1, ":", m$A2)  # Ensure matching alleles correctly
+
+# Match datasets using SNP_ID
+m_matched <- left_join(m, pqtl_ori, by = "SNP_ID")
+
+# Prepare MR data with necessary columns
+mr_data <- m_matched %>%
+  select(SNP, CHR, BP, A1 = ALLELE1, A2 = ALLELE0, BETA = BETA.x, SE = SE.x, P = P.x, A1FREQ)
+
+# Check final data
+head(mr_data)
+dim(mr_data)
+
+
