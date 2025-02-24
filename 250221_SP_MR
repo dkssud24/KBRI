@@ -107,7 +107,7 @@ for (pqtl_file in pqtl_files) {
 
 
 #step3
-#pQTL_clumping_QC_for_input_MR
+#pQTL_clumping_QC_for_input_MR_tmp
 # Load necessary libraries
 library(data.table)
 library(dplyr)
