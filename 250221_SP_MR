@@ -277,7 +277,6 @@ reverse_output_dir <- "/BiO/hae/000005_MRSPI/66_pqtl_reverse_MR/PMID33875891_GCS
 # Load GWAS clumped SNPs
 gwas_clump <- fread(gwas_clump_file)
 gwas_snps <- data.frame(SNP = gwas_clump$SNP)
-cat("✅ Loaded GWAS Clumped SNPs\n")
 
 # Load pQTL tar file
 tar_file_name <- "B2M_P61769_OID30725_v1_Inflammation_II.tar"
@@ -295,11 +294,9 @@ chromosome_data <- lapply(chromosome_files, function(file_path) {
   close(archive_read)
   return(data)
 })
-cat("✅ Loaded pQTL Data\n")
 
 # Combine pQTL data
 pqtl_data <- rbindlist(chromosome_data, fill = TRUE)
-cat("✅ Combined pQTL Data\n")
 
 # Format SNP IDs in pQTL data for matching
 pqtl_data$SNP <- sub(":imp:v1", "", pqtl_data$ID)
