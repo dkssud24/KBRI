@@ -32,7 +32,7 @@ for (tar_file in pqtl_files) {
     return(data)
   })
 }
-  
+  #pqtl_data$MAF <- pmin(pqtl_data$A1FREQ, 1 - pqtl_data$A1FREQ)
   combined_data <- rbindlist(chromosome_data, fill = TRUE)
   combined_data <- combined_data[combined_data$A1FREQ > 0.01, ]
   combined_data$P <- 10^(-combined_data$LOG10P)
@@ -259,6 +259,115 @@ for (mr_file in mr_ready_files) {
   fwrite(matched_data, output_file, sep = "\t", quote = FALSE, row.names = FALSE)
   
   cat("Processed:", file_base, "->", output_file, "\n")
+}
+
+#ReverseMR
+library(data.table)
+library(dplyr)
+library(archive)
+library(TwoSampleMR)
+library(MR.SPI)
+
+pqtl_dir <- "/BiO/hae/000001_UKB_pQTL/"
+gwas_clump_file <- "/BiO/hae/000005_MRSPI/55_GWAS_sig_clump/PMID33875891_GCST90003770/gwas_clump_result.clumped"
+reverse_output_dir <- "/BiO/hae/000005_MRSPI/66_pqtl_reverse_MR/PMID33875891_GCST90003770/"
+
+gwas_clump <- fread(gwas_clump_file)
+gwas_snps <- data.frame(SNP = gwas_clump$SNP)
+
+pqtl_files <- c(
+  "v3_result_B2M_P61769_OID30725_v1_Inflammation_II_sig.tsv.tsv",
+  "v3_result_CD200R1_Q8TD46_OID20595_v1_Inflammation_sig.tsv.tsv",
+  "v3_result_DSC2_Q02487_OID21079_v1_Neurology_sig.tsv.tsv",
+  "v3_result_FLT4_P35916_OID21491_v1_Oncology_sig.tsv.tsv",
+  "v3_result_RNASE6_Q93091_OID30689_v1_Inflammation_II_sig.tsv.tsv",
+  "v3_result_TF_P02787_OID30783_v1_Inflammation_II_sig.tsv.tsv",
+  "v3_result_TNFRSF4_P43489_OID20653_v1_Inflammation_sig.tsv.tsv",
+  "v3_result_TNFRSF9_Q07011_OID20985_v1_Neurology_sig.tsv.tsv"
+)
+
+for (pqtl_file in pqtl_files) {
+  tar_file <- file.path(pqtl_dir, gsub(".tsv.tsv", ".tar", pqtl_file))
+
+  archive_contents <- archive::archive(tar_file)
+  chromosome_files <- archive_contents$path[grepl("chr[0-9]+|chr1[0-9]|chr2[0-2]", archive_contents$path)]
+
+  chromosome_data <- lapply(chromosome_files, function(file_path) {
+    archive_read <- archive::archive_read(tar_file, file = file_path)
+    con <- gzcon(archive_read)
+    raw_text <- readLines(con, warn = FALSE)
+    text_input <- paste(raw_text, collapse = "\n")
+    data <- fread(text_input, na.strings = c("", "NA"))
+    close(archive_read)
+    return(data)
+  })
+
+  pqtl_data <- rbindlist(chromosome_data, fill = TRUE)
+  pqtl_data$SNP <- sub(":imp:v1", "", pqtl_data$ID)
+
+  tmp <- fread("/BiO/hae/000002_GWAS/PMID33875891/GCST90003770_buildGRCh37.tsv")
+  tmp$match <- paste(tmp$chromosome, tmp$base_pair_location, tmp$other_allele, tmp$effect_allele, sep=":")
+
+  clumping_snp <- fread(gwas_clump_file)
+  clumping_snp2 <- data.frame(clumping_snp$SNP)
+  names(clumping_snp2) <- c("SNP")
+  names(tmp)[2] <- c("SNP")
+  gwas_data <- left_join(clumping_snp2, tmp, by="SNP")
+
+  extract_clumping_infor <- gwas_data[, c(1, 14)]
+  pqtl_data2 <- left_join(extract_clumping_infor, pqtl_data, by='match')
+  pqtl_data2$P <- 10^(-pqtl_data2$LOG10P)
+  pqtl_data2$MAF <- pmin(pqtl_data2$A1FREQ, 1 - pqtl_data2$A1FREQ)
+
+  split_match <- strsplit(pqtl_data2$match, ":")
+  pqtl_data2$BP <- as.numeric(sapply(split_match, function(x) x[2]))
+
+  gwas_exposure <- gwas_data[, c(1, 2, 3, 5, 4, 6, 7, 13, 12)]
+  names(gwas_exposure) <- c("SNP", "CHR", "BP", "effect_allele.exposure", "other_allele.exposure", 
+                            "beta.exposure", "se.exposure", "pval.exposure", "eaf.exposure")
+  gwas_exposure$exposure <- "Brain MRI Volume"
+  gwas_exposure$id.exposure <- gwas_exposure$SNP
+
+  pqtl_outcome <- pqtl_data2[, c(1, 3, 19, 7, 6, 12, 13, 17, 18)]
+  names(pqtl_outcome) <- c("SNP", "CHR", "BP", "effect_allele.outcome", "other_allele.outcome", 
+                           "beta.outcome", "se.outcome", "pval.outcome", "eaf.outcome")
+  pqtl_outcome$outcome <- "Protein"
+  pqtl_outcome$id.outcome <- pqtl_outcome$SNP
+
+  pqtl_outcome2 <- na.omit(pqtl_outcome)
+  zztmp <- data.frame(pqtl_outcome2$SNP)
+  names(zztmp)[1] <- c("SNP")
+  gwas_exposure2 <- left_join(zztmp, gwas_exposure)
+
+  harmonized_data <- harmonise_data(gwas_exposure2, pqtl_outcome2, action = 1)
+
+  mr_spi_input <- harmonized_data %>%
+    select(SNP, beta.exposure, se.exposure, beta.outcome, se.outcome, eaf.outcome) %>%
+    na.omit()
+
+  mr_spi_result <- MR.SPI(
+    gamma = mr_spi_input$beta.exposure,
+    Gamma = mr_spi_input$beta.outcome,
+    se_gamma = mr_spi_input$se.exposure,
+    se_Gamma = mr_spi_input$se.outcome,
+    n1 = 54219,
+    n2 = 21282,
+    freq = mr_spi_input$eaf.outcome,
+    max_clique = TRUE,
+    verbose = TRUE
+  )
+
+  result_df <- data.frame(
+    File = pqtl_file,
+    Beta = mr_spi_result$betaHat[[1]],
+    SE = mr_spi_result$beta.sdHat[[1]],
+    CI_Lower = mr_spi_result$ci[[1]][1],
+    CI_Upper = mr_spi_result$ci[[1]][2],
+    P_Value = 2 * pnorm(-abs(mr_spi_result$betaHat[[1]] / mr_spi_result$beta.sdHat[[1]]))
+  )
+
+  output_file <- file.path(reverse_output_dir, paste0("MR_SPI_", gsub(".tsv.tsv", "", pqtl_file), ".csv"))
+  fwrite(result_df, output_file, sep = ",", quote = FALSE, row.names = FALSE)
 }
 
 
