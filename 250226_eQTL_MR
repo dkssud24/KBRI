@@ -1,0 +1,57 @@
+# 필요한 라이브러리 로드
+library(data.table)
+library(dplyr)
+
+# eQTL 데이터 불러오기
+eGenes_file <- "Brain_Caudate_basal_ganglia.v10.eGenes.txt.gz"
+eGenes_data <- fread(cmd = paste("gunzip -c", eGenes_file))
+
+# eQTL 데이터 전처리 (exposure 데이터 생성)
+eqtl_exposure <- eGenes_data %>%
+  dplyr::select(
+    SNP = rs_id_dbSNP155_GRCh38p13,
+    CHR = chr,
+    BP = variant_pos,
+    effect_allele.exposure = alt,
+    other_allele.exposure = ref,
+    beta.exposure = slope,
+    se.exposure = slope_se,
+    pval.exposure = pval_nominal,
+    eaf.exposure = af
+  ) %>%
+  na.omit()
+
+# CHR 컬럼에서 'chr' 제거
+eqtl_exposure$CHR <- gsub("chr", "", eqtl_exposure$CHR)
+
+# MAF 계산 및 필터링 (MAF >= 0.01)
+eqtl_exposure$maf.exposure <- pmin(eqtl_exposure$eaf.exposure, 1 - eqtl_exposure$eaf.exposure)
+filtered_eqtl <- eqtl_exposure %>% filter(maf.exposure >= 0.01)
+
+# clumping input 파일 생성
+filtered_eqtl_inputclumping <- filtered_eqtl
+colnames(filtered_eqtl_inputclumping)[6:8] <- c("BETA", "SE", "P")
+
+# 파일 저장
+clumping_input_path <- "/BiO/hae/000007_GTEX/GTEx_Analysis_v10_eQTL_updated/01_clumping/Brain_Caudate_basal_ganglia.v10.eGenes.clumping.input"
+fwrite(filtered_eqtl_inputclumping, clumping_input_path, quote = FALSE, row.names = FALSE, sep = "\t")
+
+# PLINK clumping 실행
+clumping_output_path <- "/BiO/hae/000007_GTEX/GTEx_Analysis_v10_eQTL_updated/01_clumping/Brain_Caudate_basal_ganglia.v10.eGenes.clumping.outcome"
+system(paste(
+  "plink --bfile /BiO/hae/000006_ref_1000G/ref",
+  "--clump", clumping_input_path,
+  "--clump-kb 1000 --clump-r2 0.01 --clump-p1 1 --clump-p2 1",
+  "--out", clumping_output_path
+))
+
+# Clumped SNP 리스트 불러오기
+clumping_snp_list <- fread(paste0(clumping_output_path, ".clumped"))
+clumping_snp_list2 <- data.frame(SNP = clumping_snp_list$SNP)
+
+# 최종 eQTL 데이터 생성
+final_outcome_eqtl <- left_join(clumping_snp_list2, filtered_eqtl_inputclumping, by = "SNP")
+
+# 결과 확인
+head(final_outcome_eqtl)
+dim(final_outcome_eqtl)
