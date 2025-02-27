@@ -70,6 +70,54 @@ df = pd.DataFrame(results, columns=["File Name", "Filtered Dot Count"])
 df.to_csv(csv_path, index=False)
 
 
+#250227_new_version
+import os
+import numpy as np
+import matplotlib.pyplot as plt
+from glob import glob
+from PIL import Image
+from scipy import ndimage
+import pandas as pd
+
+folder_path = "/BiO/hae/000010_Image/Control/"
+output_folder = os.path.join(folder_path, "binary_results")
+os.makedirs(output_folder, exist_ok=True) 
+
+tiff_files = glob(os.path.join(folder_path, "*.tif")) + glob(os.path.join(folder_path, "*.tiff"))
+
+def count_specific_dots(image_path):
+    img = Image.open(image_path).convert("L")
+    img_array = np.array(img)
+    binary = img_array < 100
+    labeled, num_features = ndimage.label(binary)    
+    sizes = np.array(ndimage.sum(binary, labeled, range(num_features + 1)))
+    size_filter = (sizes > 10) & (sizes < 500)
+    coordinates = np.column_stack(np.where(size_filter[labeled]))
+    final_count = np.sum(size_filter)
+    return final_count, binary, coordinates
+
+results = []
+
+for file in tiff_files:
+    dot_count, binary_image, coordinates = count_specific_dots(file)
+    results.append([os.path.basename(file), dot_count])
+    binary_pil = Image.fromarray((binary_image * 255).astype(np.uint8))
+    binary_filename = os.path.join(output_folder, f"binary_{os.path.basename(file).replace('.tif', '.png').replace('.tiff', '.png')}")
+    binary_pil.save(binary_filename)
+    fig, ax = plt.subplots(figsize=(6, 6))
+    ax.imshow(binary_image, cmap="gray")
+    ax.scatter(coordinates[:, 1], coordinates[:, 0], color="red", s=5)
+    ax.set_title(f"{os.path.basename(file)} - Dots: {dot_count}")
+    ax.axis("off")
+    vis_filename = os.path.join(output_folder, f"vis_{os.path.basename(file).replace('.tif', '.png').replace('.tiff', '.png')}")
+    plt.savefig(vis_filename, bbox_inches="tight", dpi=150)
+    plt.close()
+
+csv_path = os.path.join(folder_path, "dot_count_results.csv")
+df = pd.DataFrame(results, columns=["File Name", "Filtered Dot Count"])
+df.to_csv(csv_path, index=False)
+
+print("Processing complete. Results saved in 'binary_results' folder and 'dot_count_results.csv'.")
 
 
 
