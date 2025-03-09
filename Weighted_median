@@ -1,0 +1,62 @@
+# Load required libraries
+library(data.table)
+library(dplyr)
+library(TwoSampleMR)
+library(MendelianRandomization)
+
+# Load data
+pqtl_data <- fread('/BiO/hae/000005_MRSPI/33_pqtl_sig_clump_QC_list/v3_result_SPINK8_P0C7L1_OID30153_v1_Cardiometabolic_II_sig.tsv.tsv')
+outcome_data <- fread('/BiO/hae/000005_MRSPI/99_System_AD/00_GWAS_data/GCST009019')
+
+# Convert allele columns to uppercase
+outcome_data$effect_allele.outcome <- toupper(outcome_data$effect_allele.outcome)
+outcome_data$other_allele.outcome <- toupper(outcome_data$other_allele.outcome)
+
+# Add required columns for harmonisation
+outcome_data$outcome <- "Brain MRI Volume"
+outcome_data$id.outcome <- outcome_data$SNP
+
+# Rename pQTL data columns
+colnames(pqtl_data) <- c("SNP", "CHR", "BP", "effect_allele.exposure", "other_allele.exposure",
+                         "beta.exposure", "se.exposure", "pval.exposure", "eaf.exposure")
+pqtl_data$exposure <- "Protein"
+pqtl_data$id.exposure <- pqtl_data$SNP
+
+# Harmonise data
+dat <- harmonise_data(pqtl_data, outcome_data, action = 1)
+
+# Prepare input for weighted median MR
+weighted_median_input <- dat %>%
+  dplyr::select(SNP, beta.exposure, se.exposure, beta.outcome, se.outcome, eaf.exposure) %>%
+  na.omit()
+
+# Perform weighted median MR
+mr_input <- mr_input(
+  bx = weighted_median_input$beta.exposure,
+  bxse = weighted_median_input$se.exposure,
+  by = weighted_median_input$beta.outcome,
+  byse = weighted_median_input$se.outcome,
+  snps = weighted_median_input$SNP
+)
+
+mr_wm_result <- mr_median(mr_input)
+
+# Extract results
+beta_wm <- mr_wm_result@Estimate
+se_wm <- mr_wm_result@StdError
+ci_lower_wm <- beta_wm - 1.96 * se_wm
+ci_upper_wm <- beta_wm + 1.96 * se_wm
+p_value_wm <- 2 * pnorm(-abs(beta_wm / se_wm))
+
+# Format results into a dataframe
+result_wm_df <- data.frame(
+  Method = "Weighted Median",
+  Beta = beta_wm,
+  SE = se_wm,
+  CI_Lower = ci_lower_wm,
+  CI_Upper = ci_upper_wm,
+  P_Value = p_value_wm
+)
+
+# Print results
+print(result_wm_df)
