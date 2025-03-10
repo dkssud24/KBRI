@@ -9,8 +9,8 @@ pqtl_data <- fread('/BiO/hae/000005_MRSPI/33_pqtl_sig_clump_QC_list/v3_result_SP
 outcome_data <- fread('/BiO/hae/000005_MRSPI/99_System_AD/00_GWAS_data/GCST009019')
 
 # Convert allele columns to uppercase
-outcome_data$effect_allele.outcome <- toupper(outcome_data$effect_allele.outcome)
-outcome_data$other_allele.outcome <- toupper(outcome_data$other_allele.outcome)
+#outcome_data$effect_allele.outcome <- toupper(outcome_data$effect_allele.outcome)
+#outcome_data$other_allele.outcome <- toupper(outcome_data$other_allele.outcome)
 
 # Add required columns for harmonisation
 outcome_data$outcome <- "Brain MRI Volume"
