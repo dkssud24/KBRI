@@ -1,0 +1,81 @@
+#!/bin/bash
+
+input_file="step2.pQTL.list.v2"
+
+while IFS= read -r line; do
+    # Extract the file name without path and extension
+    base_name=$(basename "$line" .tar)
+    
+    # Run the R script with the current tar file
+    Rscript step3.R "$line" "step3.pQTL.$base_name"
+done < "$input_file"
+
+
+
+
+
+library(data.table)
+library(dplyr)
+library(archive)
+
+# Command line arguments
+args <- commandArgs(trailingOnly = TRUE)
+if (length(args) < 2) {
+  stop("Usage: Rscript step3.R <tar_file_path> <output_filename>")
+}
+
+tar_file <- args[1]
+output_file <- args[2]
+
+# Load GWAS data
+gwas_data <- fread("/BiO/hae/000005_MRSPI/99_System_AD/00_GWAS_data/GCST90449053")
+significant_snps <- gwas_data[gwas_data$pval.outcome < 5.00E-08, ]
+
+# Read pQTL tar archive
+archive_contents <- archive::archive(tar_file)
+chromosome_files <- archive_contents$path[grepl("chr[0-9]+|chr1[0-9]|chr2[0-2]", archive_contents$path)]
+
+# Extract chromosome files
+tar_data <- lapply(chromosome_files, function(file_path) {
+  archive_read <- archive::archive_read(tar_file, file = file_path)
+  con <- gzcon(archive_read)
+  raw_text <- readLines(con, warn = FALSE)
+  text_input <- paste(raw_text, collapse = "\n")
+  data <- fread(text_input, na.strings = c("", "NA"))
+  close(archive_read)
+  return(data)
+})
+
+pqtl_data <- rbindlist(tar_data, fill = TRUE)
+pqtl_data$SNP <- sub(":imp:v1", "", pqtl_data$ID)
+names(pqtl_data)[15] <- "ma"
+
+# Prepare GWAS data for merging
+significant_snps <- data.frame(significant_snps)
+significant_snps['ma'] <- paste(significant_snps$CHR, significant_snps$BP, 
+                                significant_snps$effect_allele.outcome, 
+                                significant_snps$other_allele.outcome, sep=":")
+m <- left_join(significant_snps, pqtl_data, by='ma')
+
+significant_snps['ma'] <- paste(significant_snps$CHR, significant_snps$BP, 
+                                significant_snps$other_allele.outcome, 
+                                significant_snps$effect_allele.outcome, sep=":")
+m1 <- left_join(significant_snps, pqtl_data, by='ma')
+
+# Combine and filter merged data
+merged_data <- rbind(m, m1)
+selected_columns <- c("CHR", "BP", "effect_allele.outcome", "other_allele.outcome", 
+                      "beta.outcome", "se.outcome", "eaf.outcome", "pval.outcome", 
+                      "SNP", "A1FREQ", "ALLELE0", "ALLELE1", "BETA", "SE", "LOG10P")
+cleaned_data <- na.omit(merged_data[, selected_columns])
+
+# Extract and clean pQTL data
+pqtl_data <- merged_data[, c("CHR", "BP", "SNP", "A1FREQ", "ALLELE0", "ALLELE1", "BETA", "SE", "LOG10P")]
+pqtl_data <- na.omit(pqtl_data)
+pqtl_data$pval.outcome <- 10^(-pqtl_data$LOG10P)
+pqtl_data$MAF <- pmin(pqtl_data$A1FREQ, 1 - pqtl_data$A1FREQ)
+names(pqtl_data)[5:6] <- c("A2", "A1")
+names(pqtl_data) <- c("CHR", "BP", "SNP", "A1FREQ", "A2", "A1", "beta.outcome", "se.outcome", "LOG10P", "pval.outcome", "eaf.outcome")
+
+# Save final pQTL data
+fwrite(pqtl_data, output_file, quote=FALSE, row.names=FALSE, sep="\t")
