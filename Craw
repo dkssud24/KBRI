@@ -1,0 +1,54 @@
+import pandas as pd
+import time
+from Bio import Entrez
+
+# 이메일 설정 (NCBI 정책상 필수)
+Entrez.email = "5051515@naver.com"
+
+
+search_term = "Gene"
+
+# PubMed 검색 함수
+def search_pubmed(query, max_results=10000):
+    """PubMed에서 검색 후 제목과 PMID 반환"""
+    handle = Entrez.esearch(db="pubmed", term=query, retmax=max_results)
+    record = Entrez.read(handle)
+    pmids = record["IdList"]
+
+    paper_data = []
+    if pmids:
+        fetch_handle = Entrez.efetch(db="pubmed", id=",".join(pmids), rettype="medline", retmode="text")
+        
+        current_pmid = None
+        current_title = None
+        
+        for line in fetch_handle:
+            if line.startswith("PMID- "):
+                current_pmid = line.split(" ")[-1].strip()
+            if line.startswith("TI  -"):
+                current_title = line[6:].strip()
+            if current_pmid and current_title:
+                paper_data.append((current_title, current_pmid))
+                current_pmid, current_title = None, None  # 다음 논문으로 초기화
+        
+        fetch_handle.close()
+    
+    return paper_data
+
+
+print(f" Searching PubMed for: {search_term}")
+
+papers = search_pubmed(search_term)
+results = []
+
+if papers:
+    for title, pmid in papers:
+        results.append([search_term, title, pmid])
+else:
+    results.append([search_term, "No results", "NA"])
+
+# 결과를 DataFrame으로 변환 후 CSV 저장
+df = pd.DataFrame(results, columns=["Search Term", "Title", "PMID"])
+df.to_csv("01_pubmed.csv", index=False)
+
+
