@@ -99,3 +99,6 @@ print(i)
 results <- data.frame(results)
  fwrite(results,arg6,quote=FALSE,row.names=FALSE,sep=",")
 
+#d <- read.csv("result.TGFBR2")
+#max_value <- max(as.numeric(d[7, ]), na.rm = TRUE)
+#print(max_value)
