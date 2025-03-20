@@ -1,0 +1,27 @@
+library(data.table)
+library(coloc)
+library(dplyr)
+pqtl_sig <- fread("/BiO/hae/000005_MRSPI/34_coloc/tmp/clumped_results.clumped")
+pqtl_sig_snp <- data.frame(pqtl_sig$SNP)
+names(pqtl_sig_snp) <- c("SNP")
+ori <- fread('/BiO/hae/000005_MRSPI/34_coloc/raw_pQTL/CLEC14A_Q86T13_OID21090_v1_Neurology/merge.v2')
+ori <- data.frame(ori)
+sibal <- pqtl_sig_snp [ 1,]
+tmp <- ori [ ori$rsID == sibal,]
+bp <- tmp$BP
+ upper <- bp + 500000
+ lower <- bp - 500000
+ chr <- tmp$CHR
+ colc_data_pqtl <- ori [ ori$CHR == chr,]
+ colc_data_pqtl <- colc_data_pqtl [ colc_data_pqtl$BP < upper,]
+ colc_data_pqtl <- colc_data_pqtl [ colc_data_pqtl$BP > lower,]
+GWAS_AD <- fread("/BiO/hae/000005_MRSPI/99_System_AD/00_GWAS_data/GCST90449055")
+ names(colc_data_pqtl)[18] <- c("SNP")
+ m <- left_join(colc_data_pqtl,GWAS_AD,by="SNP")
+m2 <- na.omit(m)
+dataset1 <- list(snp = m2$SNP, beta = m2$BETA, varbeta= (m2$SE)^2, pval= m2$P , MAF = pmin(m2$A1FREQ, 1-m2$A1FREQ), N= 33995,type="quant")
+ dataset2 <- list(snp = m2$SNP, beta = m2$beta.outcome, varbeta= (m2$se.outcome)^2, pval= m2$pval.outcome , MAF = pmin(m2$A1FREQ, 1-m2$A1FREQ), N= 242124,type="quant")
+dataset1$sdY <- sqrt(dataset1$varbeta * (2 * dataset1$MAF * (1 - dataset1$MAF) * dataset1$N))
+dataset2$sdY <- sqrt(dataset2$varbeta * (2 * dataset2$MAF * (1 - dataset2$MAF) * dataset2$N))
+my.res <- coloc.abf(dataset1=dataset1, dataset2=dataset2, 
+                    p1=1e-4, p2=1e-4, p12=1e-5)
