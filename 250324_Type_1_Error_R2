@@ -1,0 +1,12 @@
+#Calucation_of_R2
+#PMID_39541979
+d$R2 <- 2*d$MAF* (1-d$MAF)*(d$BETA)*(d$BETA)
+
+#Calucation_of_F_stat
+#N_exposure_sample_size
+N <- 33995
+d$F_stat <- (d$R2 * (N - 2)) / (1 - d$R2)
+#We_applied_a_threshold_of_F-statistic>10_to_include_only_strong_instruments
+
+#Type_1_Error
+
