@@ -1,0 +1,1 @@
+grep -Ff ICD10 ../00_root_ICD10.csv | cut -d ',' -f1 > matched_eids.txt
