@@ -1,0 +1,28 @@
+parallel::detectCores()
+library(GenomicSEM)
+library(GenomicSEM)
+files <- c("step1.GCST90475837.sumstats.gz",
+           "step1.GCST90435863.sumstats.gz",
+           "step1.GCST005839.sumstats.gz",
+           "step1.GCST90104539.sumstats.gz",
+           "step1.GCST90104540.sumstats.gz",
+           "step1.GCST90475985.sumstats.gz",
+           "step1.GCST90475988.sumstats.gz",
+           "step1.GCST90475908.sumstats.gz")
+trait.names <- c("VestMigraine", "Anxiety", "Depression", "Stroke", "IschemicStroke", "CVDisease", "VBI", "Dizziness")
+# 위 테이블에서 추출한 N_effect 값
+N <- c(118081, 27239, 389039, 278025, 236506, 232982, 119992, 208254)
+ld <- "/BiO/hae/ldsc/eur_w_ld_chr/"
+wld <- ld
+sample.prev <- c(0.0727, 0.0186, 0.2820, 0.0563,
+                 0.0479, 0.1667, 0.0751, 0.1542)
+population.prev <- sample.prev 
+ldsc_result <- ldsc(
+  traits = files,
+  sample.prev = sample.prev,
+  population.prev = population.prev,
+  ld = ld,
+  wld = wld,
+  trait.names = trait.names
+)
+save(ldsc_result, file = "LDSC_VERTIGO8.RData")
