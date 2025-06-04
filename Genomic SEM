@@ -28,16 +28,7 @@ ldsc_result <- ldsc(
 save(ldsc_result, file = "LDSC_VERTIGO8.RData")
 library(corrplot)
 
-png("S_matrix_corrplot_improved.png", width = 800, height = 800)
-
-corrplot(cor_mat,
-         method = "color",
-         type = "lower",           # 전체 행렬 보여주기
-         tl.cex = 1,               # trait 이름 크기
-         tl.col = "black",         # trait 이름 색상
-         addCoef.col = "black",    # 상관계수 숫자 색상
-         number.cex = 1.2,         # 상관계수 숫자 크기
-         tl.srt = 45)              # trait 이름 회전 각도 (가독성 좋게)
-
+png("S_matrix_corrplot_highres.png",width = 2000, height = 2000,res = 300)
+corrplot(cor_mat, method = "color", type = "upper",tl.cex = 0.8, tl.col = "black",addCoef.col = "black", number.cex = 1.2) 
 dev.off()
 
