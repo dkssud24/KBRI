@@ -26,3 +26,25 @@ ldsc_result <- ldsc(
   trait.names = trait.names
 )
 save(ldsc_result, file = "LDSC_VERTIGO8.RData")
+
+library(corrplot)
+# 상관계수로 변환 (표준화)
+cor_mat <- cov2cor(S)
+png("S_matrix_corrplot.png", width = 800, height = 800)
+corrplot(cor_mat, method = "color", type = "upper", 
+         tl.cex = 0.8, tl.col = "black", 
+         addCoef.col = "black", number.cex = 0.7)
+dev.off()
+cor_mat <- cov2cor(S)
+range(cor_mat)
+# 1. cov2cor
+cor_mat <- cov2cor(S)
+# 2. 값 강제 클리핑
+cor_mat[cor_mat > 1] <- 1
+cor_mat[cor_mat < -1] <- -1
+# 3. 다시 그리기 및 저장
+library(corrplot)
+png("S_matrix_corrplot.png", width = 800, height = 800)
+corrplot(cor_mat, method = "color", type = "upper",tl.cex = 0.8, tl.col = "black", 
+         addCoef.col = "black", number.cex = 0.7)
+dev.off()
