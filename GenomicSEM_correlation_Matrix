@@ -1,0 +1,22 @@
+# 예시 trait 이름
+traits <- c("SLE", "Syncope", "VertebralArteryStenosis", "Dizziness")
+
+# 상관 행렬 만들고 라벨 지정
+cor_matrix <- cov2cor(ldsc_result$S)
+rownames(cor_matrix) <- traits
+colnames(cor_matrix) <- traits  # ✅ X축 이름도 명시
+
+# PNG 저장
+png(filename = "genetic_correlation_matrix.png", 
+    width = 2000, height = 2000, res = 300)
+
+# 그림 그리기
+ggcorrplot(cor_matrix,
+           method = "square",
+           type = "upper",
+           lab = TRUE,
+           lab_size = 6,
+           title = "Genetic Correlation Matrix (Genomic SEM)",
+           show.diag = TRUE)
+
+dev.off()
